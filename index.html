@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>شقة الربيع - نظام المصروفات</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#0d1117; --sur:#161b22; --sur2:#1e2530; --bdr:#2a3441;
+  --blue:#4f8ef7; --blue-d:#2a4a8f; --blue-g:rgba(79,142,247,.15);
+  --green:#2ea44f; --green-g:rgba(46,164,79,.12);
+  --red:#f85149; --red-g:rgba(248,81,73,.12);
+  --amber:#d4a017; --amber-g:rgba(212,160,23,.12);
+  --purple:#a78bfa; --purple-g:rgba(167,139,250,.15);
+  --txt:#e6edf3; --mut:#7d8590;
+  --haa:#4f8ef7; --hjm:#a78bfa; --siraj:#2ea44f; --mahdi:#d4a017;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;font-size:15px;direction:rtl;}
+
+/* HEADER */
+.hdr{background:linear-gradient(135deg,#0d1117,#161b22,#0a1220);border-bottom:1px solid var(--blue-d);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;gap:12px;flex-wrap:wrap;}
+.hdr-l{display:flex;align-items:center;gap:12px;}
+.logo{width:44px;height:44px;background:radial-gradient(circle at 30% 30%,var(--blue),var(--blue-d));border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.hdr h1{font-size:20px;font-weight:900;color:var(--blue);}
+.hdr .sub{font-size:11px;color:var(--mut);}
+#file-time{font-size:10px;color:var(--mut);margin-top:1px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.sync-btn{font-family:'Tajawal',sans-serif;background:var(--blue-g);border:1px solid var(--blue-d);color:var(--blue);font-size:13px;font-weight:700;padding:8px 14px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;}
+.sync-btn:hover{background:rgba(79,142,247,.25);}
+.sync-btn.spinning .si{animation:spin .8s linear infinite;}
+
+/* TABS */
+.tabs{display:flex;gap:2px;padding:12px 24px 0;border-bottom:1px solid var(--bdr);background:var(--sur);overflow-x:auto;}
+.tab{padding:8px 18px;border-radius:7px 7px 0 0;border:1px solid transparent;border-bottom:none;font-family:'Tajawal',sans-serif;font-size:14px;font-weight:500;cursor:pointer;color:var(--mut);background:transparent;transition:all .15s;white-space:nowrap;}
+.tab:hover{color:var(--txt);background:var(--sur2);}
+.tab.active{background:var(--bg);color:var(--blue);border-color:var(--bdr);border-bottom-color:var(--bg);margin-bottom:-1px;}
+
+/* MAIN */
+.main{padding:22px 24px;max-width:1200px;margin:0 auto;}
+.panel{display:none;} .panel.active{display:block;}
+
+/* BANNER */
+#banner{font-size:12px;font-weight:600;padding:10px 14px;border-radius:8px;margin-bottom:18px;display:none;}
+#banner.L{background:var(--blue-g);border:1px solid var(--blue-d);color:var(--blue);display:block;}
+#banner.S{background:var(--green-g);border:1px solid var(--green);color:var(--green);display:block;}
+#banner.E{background:var(--red-g);border:1px solid var(--red);color:var(--red);display:block;}
+
+/* LOADING */
+#loading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;gap:14px;color:var(--mut);font-size:14px;}
+.spinner{width:34px;height:34px;border:3px solid var(--bdr);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;}
+
+/* STAT CARDS */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:20px;}
+.card{background:var(--sur);border:1px solid var(--bdr);border-radius:11px;padding:14px 16px;}
+.card .cl{font-size:11px;color:var(--mut);margin-bottom:6px;}
+.card .cv{font-size:21px;font-weight:700;direction:ltr;}
+.card .cs{font-size:11px;color:var(--mut);margin-top:3px;}
+.cv.blue{color:var(--blue);}.cv.green{color:var(--green);}.cv.red{color:var(--red);}.cv.amber{color:var(--amber);}
+
+/* SECTION TITLE */
+.stitle{font-size:14px;font-weight:700;color:var(--blue);margin:20px 0 12px;}
+.stitle:first-child{margin-top:0;}
+
+/* MEMBER GRID (overview) */
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:20px;}
+.mcard{background:var(--sur);border:1px solid var(--bdr);border-radius:13px;overflow:hidden;cursor:pointer;transition:all .18s;}
+.mcard:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.35);}
+.mcard-h{padding:14px 16px 11px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:10px;}
+.mav{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
+.mname{font-size:14px;font-weight:700;}
+.mrole{font-size:11px;color:var(--mut);margin-top:1px;}
+.mcard-b{padding:10px 16px;}
+.mr{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--bdr);font-size:13px;}
+.mr:last-child{border-bottom:none;}
+.mrl{color:var(--mut);}
+.mrr{font-weight:600;}
+.mcard-f{padding:9px 16px;background:var(--sur2);display:flex;justify-content:space-between;align-items:center;}
+.mfl{font-size:11px;color:var(--mut);}
+.mfv{font-size:15px;font-weight:700;}
+
+/* MEMBER DETAIL PAGE */
+.back{display:inline-flex;align-items:center;gap:7px;color:var(--mut);font-size:13px;cursor:pointer;padding:6px 11px;border:1px solid var(--bdr);border-radius:7px;margin-bottom:16px;transition:all .15s;}
+.back:hover{color:var(--txt);border-color:var(--blue);}
+.det-header{display:flex;align-items:center;gap:14px;margin-bottom:20px;flex-wrap:wrap;}
+.det-av{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0;}
+.det-name{font-size:20px;font-weight:900;}
+.det-role{font-size:13px;color:var(--mut);margin-top:3px;}
+
+/* MONTH STATUS CARDS */
+.month-status-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-bottom:20px;}
+.ms-card{background:var(--sur);border:1px solid var(--bdr);border-radius:12px;overflow:hidden;}
+.ms-card-top{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bdr);}
+.ms-month-name{font-size:14px;font-weight:700;}
+.ms-badges{display:flex;gap:6px;flex-wrap:wrap;}
+.ms-card-body{padding:12px 16px;}
+.ms-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--bdr);font-size:13px;}
+.ms-row:last-child{border-bottom:none;}
+.ms-label{color:var(--mut);}
+.ms-val{font-weight:600;direction:ltr;display:inline-block;}
+.ms-payments{margin-top:8px;}
+.ms-pay-item{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:3px 0;color:var(--mut);}
+.ms-pay-date{color:var(--mut);}
+.ms-pay-amt{color:var(--green);font-weight:600;direction:ltr;}
+.ms-pay-desc{flex:1;padding:0 8px;color:var(--txt);}
+.ms-expenses-list{margin-top:6px;}
+.ms-exp-item{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px dotted var(--bdr);}
+.ms-exp-item:last-child{border-bottom:none;}
+.ms-exp-desc{color:var(--mut);flex:1;}
+.ms-exp-amt{color:var(--red);font-weight:600;direction:ltr;}
+.ms-divider{height:1px;background:var(--bdr);margin:8px 0;}
+.ms-summary-row{display:flex;justify-content:space-between;font-size:13px;font-weight:700;padding:4px 0;}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:2px 9px;border-radius:99px;}
+.b-paid{background:var(--green-g);color:var(--green);border:1px solid var(--green);}
+.b-unpaid{background:var(--red-g);color:var(--red);border:1px solid var(--red);}
+.b-partial{background:var(--amber-g);color:var(--amber);border:1px solid var(--amber);}
+.b-na{background:rgba(125,133,144,.12);color:var(--mut);border:1px solid var(--mut);}
+.b-future{background:rgba(125,133,144,.08);color:var(--mut);border:1px solid var(--bdr);}
+.b-blue{background:var(--blue-g);color:var(--blue);border:1px solid var(--blue-d);}
+.b-purple{background:var(--purple-g);color:var(--purple);border:1px solid var(--purple);}
+
+/* AMOUNT COLORS */
+.apos{color:var(--red);font-weight:600;direction:ltr;display:inline-block;}
+.aneg{color:var(--green);font-weight:600;direction:ltr;display:inline-block;}
+.azero{color:var(--mut);}
+
+/* TABLE */
+.twrap{background:var(--sur);border:1px solid var(--bdr);border-radius:11px;overflow:hidden;overflow-x:auto;margin-bottom:18px;}
+.twrap-h{padding:11px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bdr);}
+.twrap-t{font-size:13px;font-weight:700;}
+table{width:100%;border-collapse:collapse;min-width:420px;}
+thead{background:var(--sur2);}
+th{padding:9px 13px;font-size:11px;font-weight:600;color:var(--mut);text-align:right;border-bottom:1px solid var(--bdr);white-space:nowrap;}
+td{padding:9px 13px;font-size:13px;border-bottom:1px solid var(--bdr);}
+tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:rgba(255,255,255,.02);}
+
+/* CHIP */
+.chip{display:inline-flex;align-items:center;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;}
+
+/* SUMMARY TOTALS BOX */
+.totals-box{background:var(--sur);border:1px solid var(--bdr);border-radius:11px;padding:16px 18px;margin-bottom:20px;}
+.tot-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--bdr);font-size:14px;}
+.tot-row:last-child{border-bottom:none;padding-top:10px;margin-top:4px;}
+.tot-row.final{font-size:16px;font-weight:700;}
+.tot-label{color:var(--mut);}
+.tot-val{font-weight:700;direction:ltr;}
+
+/* MONTH PILLS */
+.mpills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+.mpill{font-family:'Tajawal',sans-serif;font-size:12px;padding:4px 12px;border-radius:99px;border:1px solid var(--bdr);background:transparent;color:var(--mut);cursor:pointer;display:flex;align-items:center;gap:5px;}
+.mpill:hover{border-color:var(--blue-d);background:var(--blue-g);color:var(--blue);}
+.mpill.active{border-color:var(--blue-d);background:var(--blue-g);color:var(--blue);font-weight:700;}
+
+/* MONTHS OVERVIEW GRID */
+.mo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:20px;}
+.mo-card{background:var(--sur);border:1px solid var(--bdr);border-radius:11px;padding:13px 15px;cursor:pointer;transition:border-color .15s;}
+.mo-card:hover{border-color:var(--blue);}
+.mo-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.mo-name{font-size:14px;font-weight:700;}
+.mo-share{text-align:left;}
+.mo-sv{font-size:16px;font-weight:700;color:var(--blue);}
+.mo-sl{font-size:10px;color:var(--mut);}
+.ptrack{background:var(--bdr);border-radius:99px;height:4px;overflow:hidden;margin-bottom:10px;}
+.pfill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--blue-d),var(--blue));}
+.brow{display:flex;align-items:center;gap:7px;font-size:12px;margin-bottom:4px;}
+.bl{width:70px;flex-shrink:0;}
+.bt{flex:1;height:3px;background:var(--bdr);border-radius:2px;overflow:hidden;}
+.bf{height:100%;border-radius:2px;}
+.bv{width:55px;text-align:left;color:var(--mut);font-size:11px;}
+#month-detail-section{display:none;margin-top:18px;border-top:1px solid var(--bdr);padding-top:18px;}
+
+/* pills for exp tab */
+.pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+.pill{font-family:'Tajawal',sans-serif;font-size:13px;padding:5px 13px;border-radius:99px;border:1px solid var(--bdr);background:transparent;color:var(--mut);cursor:pointer;}
+.pill:hover,.pill.active{border-color:var(--blue-d);background:var(--blue-g);color:var(--blue);}
+
+@media(max-width:640px){
+  .hdr{padding:12px 14px;} .tabs{padding:10px 12px 0;} .main{padding:14px 12px;}
+  .cards{grid-template-columns:1fr 1fr;} .month-status-grid{grid-template-columns:1fr;}
+  .mgrid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-l">
+    <div class="logo">🏠</div>
+    <div>
+      <h1>شقة الربيع</h1>
+      <div class="sub">نظام متابعة المصروفات المشتركة</div>
+      <div id="file-time">جاري التحقق من GitHub...</div>
+    </div>
+  </div>
+  <button class="sync-btn" onclick="syncNow()">
+    <svg class="si" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+    </svg>
+    مزامنة من GitHub
+  </button>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab(0,this)">📊 نظرة عامة</button>
+  <button class="tab" onclick="showTab(1,this)">👥 الأعضاء</button>
+  <button class="tab" onclick="showTab(2,this)">📅 الشهور</button>
+  <button class="tab" onclick="showTab(3,this)">🧾 المصروفات</button>
+</div>
+
+<div class="main">
+  <div id="banner"></div>
+  <div id="loading"><div class="spinner"></div><div>جاري تحميل البيانات من GitHub...</div></div>
+  <div id="app" style="display:none">
+
+    <!-- TAB 0: OVERVIEW -->
+    <div class="panel active" id="tab0">
+      <div class="stitle">ملخص عام</div>
+      <div class="cards" id="ov-cards"></div>
+      <div class="stitle">ملخص الأعضاء</div>
+      <div class="mgrid" id="ov-members"></div>
+      <div class="stitle">المصاريف الرأسمالية الأولية</div>
+      <div class="twrap">
+        <div class="twrap-h"><span class="twrap-t">مدفوعات Hussain Almoghalliq (HJM)</span><span id="capex-total" class="badge b-blue"></span></div>
+        <table><thead><tr><th>التاريخ</th><th>البيان</th><th>المبلغ</th></tr></thead>
+        <tbody id="capex-body"></tbody></table>
+      </div>
+    </div>
+
+    <!-- TAB 1: MEMBERS -->
+    <div class="panel" id="tab1">
+      <div id="mem-list">
+        <div class="stitle">اختر عضواً لعرض تفاصيله الكاملة</div>
+        <div class="mgrid" id="mem-grid"></div>
+      </div>
+      <div id="mem-detail" style="display:none">
+        <div class="back" onclick="closeDet()">← رجوع للأعضاء</div>
+        <div id="mem-det-content"></div>
+      </div>
+    </div>
+
+    <!-- TAB 2: MONTHS -->
+    <div class="panel" id="tab2">
+      <div class="stitle">المصاريف الشهرية</div>
+      <div class="mo-grid" id="mo-grid"></div>
+      <div id="month-detail-section"><div id="month-det-content"></div></div>
+    </div>
+
+    <!-- TAB 3: EXPENSES -->
+    <div class="panel" id="tab3">
+      <div class="stitle">جميع المصروفات</div>
+      <div class="pills" id="exp-pills"></div>
+      <div class="twrap">
+        <table><thead><tr><th>الشهر</th><th>البيان</th><th>المبلغ</th><th>الدافع</th></tr></thead>
+        <tbody id="exp-body"></tbody></table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════
+const REPO     = 'hussainalmoghalliq2024/rabi';
+const FILE     = 'rabi_apartment_expenses.xlsx';
+const RAW_URL  = `https://raw.githubusercontent.com/${REPO}/main/${FILE}`;
+const COMM_URL = `https://api.github.com/repos/${REPO}/commits?path=${FILE}&per_page=1`;
+const CACHE_K  = 'rabi_v2';
+
+// ═══════════════════════════════════════════════════
+// DATE HELPERS  (cellDates:false — serial numbers)
+// ═══════════════════════════════════════════════════
+function serialParts(s) {
+  if (typeof s !== 'number' || s < 1) return null;
+  let n = Math.floor(s);
+  if (n === 60) return {y:1900,m:2,d:29};
+  if (n > 60) n--;
+  const d = new Date(1899, 11, 31);
+  d.setDate(d.getDate() + n);
+  return {y:d.getFullYear(), m:d.getMonth()+1, d:d.getDate()};
+}
+const AR_M = ['','يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+function serialDisp(s) {
+  const p = serialParts(s); if (!p) return null;
+  return `${p.d} ${AR_M[p.m]} ${p.y}`;
+}
+function serialMK(s) { // YYYYMM
+  const p = serialParts(s); return p ? p.y*100+p.m : null;
+}
+function mkToAr(k) {
+  if (!k) return '—';
+  return `${AR_M[k%100]} ${Math.floor(k/100)}`;
+}
+function numV(v) {
+  if (typeof v==='number') return v;
+  if (typeof v==='string'){const n=parseFloat(v.replace(/,/g,''));return isNaN(n)?0:n;}
+  return 0;
+}
+function isDate(v) { return v instanceof Date && !isNaN(v); }
+function dateMK(v) { // JS Date → YYYYMM
+  if (!isDate(v)) return null;
+  return v.getFullYear()*100 + v.getMonth()+1;
+}
+function dateDisp(v) {
+  if (!isDate(v)) return null;
+  return `${v.getDate()} ${AR_M[v.getMonth()+1]} ${v.getFullYear()}`;
+}
+
+// ═══════════════════════════════════════════════════
+// MEMBERS CONFIG
+// ═══════════════════════════════════════════════════
+const M = {
+  haa:   {key:'haa',   name:'Hussain Alahmed',     abbr:'HAA',   ini:'HA', color:'var(--haa)',   bg:'rgba(79,142,247,.15)',  bdr:'#4f8ef7'},
+  hjm:   {key:'hjm',   name:'Hussain Almoghalliq', abbr:'HJM',   ini:'HM', color:'var(--hjm)',   bg:'rgba(167,139,250,.15)', bdr:'#a78bfa'},
+  siraj: {key:'siraj', name:'Siraj Quraish',        abbr:'Siraj', ini:'SQ', color:'var(--siraj)', bg:'rgba(46,164,79,.15)',   bdr:'#2ea44f'},
+  mahdi: {key:'mahdi', name:'Mahdi BuAli',           abbr:'Mahdi', ini:'MB', color:'var(--mahdi)', bg:'rgba(212,160,23,.15)',  bdr:'#d4a017'},
+};
+const PMAP = {
+  'hussain alahmed':'haa','hussain almoghalliq':'hjm',
+  'siraj quraish':'siraj','siraj':'siraj','seraj':'siraj',
+  'mahdi':'mahdi','mahdi buali':'mahdi','hjm':'hjm','haa':'haa',
+};
+function whoKey(v){ return v?PMAP[String(v).trim().toLowerCase()]||null:null; }
+
+// ═══════════════════════════════════════════════════
+// DATA STATE
+// ═══════════════════════════════════════════════════
+// monthlyExp[]: {monthKey, monthName, share, memberCount, items:[{who,desc,amount}]}
+// members[key]: {rentRows:[{monthKey,desc,amount}], payments:[{date,desc,amount,monthKey}], expRows:[{monthKey,expShare,expPaid,expBalance}], remaining_rent, remaining_exp}
+let ST = { capex:[], monthlyExp:[], members:{} };
+
+// ═══════════════════════════════════════════════════
+// PARSE WORKBOOK
+// ═══════════════════════════════════════════════════
+const MONTH_SHEETS = [
+  ['October 2025',202510], ['November 2025',202511], ['December 2025',202512],
+  ['January 2026',202601], ['February 2026',202602], ['March 2026',202603],
+  ['April 2026',202604],   ['May 2026',202605],      ['June 2026',202606],
+  ['July 2026',202607],    ['August 2026',202608],   ['September 2026',202609],
+  ['October 2026',202610]
+];
+
+function parseWorkbook(wb) {
+  ST = {capex:[], monthlyExp:[], members:{}};
+
+  // ── CAPEX sheet ──
+  const wsF = wb.Sheets['Main Expenses (Fixed)'];
+  if (wsF) {
+    const rows = XLSX.utils.sheet_to_json(wsF,{header:1,defval:''});
+    for (const r of rows) {
+      const s0 = r[0], desc = String(r[1]||'').trim(), amt = numV(r[2]);
+      if (!desc || amt<=0) continue;
+      let dateStr = '—';
+      if (typeof s0==='number' && s0>40000) dateStr = serialDisp(s0)||'—';
+      else if (isDate(s0)) dateStr = dateDisp(s0)||'—';
+      else if (s0) dateStr = String(s0);
+      ST.capex.push({date:dateStr, desc, amount:amt});
+    }
+  }
+
+  // ── Monthly expense sheets ──
+  for (const [sname, mk] of MONTH_SHEETS) {
+    const ws = wb.Sheets[sname]; if (!ws) continue;
+    const rows = XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    const items=[];
+    let share=0, memberCount=3, currentWho=null;
+
+    for (const r of rows) {
+      const c0=String(r[0]||'').trim(), c1=String(r[1]||'').trim(),
+            c2=String(r[2]||'').trim(), c3=String(r[3]||'').trim();
+
+      if (c0.startsWith('Payments by')) {
+        const who = c0.replace('Payments by','').trim();
+        if      (/hus.*alahmed|ahmed/i.test(who))   currentWho='haa';
+        else if (/hussain.*almo|almogh/i.test(who)) currentWho='hjm';
+        else if (/hussain/i.test(who))               currentWho='hjm';
+        else if (/seraj|siraj/i.test(who))           currentWho='siraj';
+        else if (/mahdi/i.test(who))                 currentWho='mahdi';
+        continue;
+      }
+      if (c0==='Date'||c1==='Description') continue;
+      if (c0.includes('Share on') || c1.includes('Share on')) {
+        const v=numV(r[2])||numV(r[3])||numV(r[4]);
+        if (v>0) share=v;
+        if (/4 member/i.test(c0+c1)) memberCount=4;
+        continue;
+      }
+      if ((c0==='Total'||c1==='Total') && !c2.includes('Share')) continue;
+
+      // expense lines
+      let desc='', amt=0, who=currentWho;
+      if (c1 && numV(r[2])>0) {
+        desc=c1; amt=numV(r[2]); const pb=whoKey(r[3]); if(pb) who=pb;
+      } else if (c0 && numV(r[2])>0 && !c0.startsWith('Payments')) {
+        desc=c1||c0; amt=numV(r[2]); const pb=whoKey(r[3]); if(pb) who=pb;
+      }
+      if (desc && amt>0 && who) items.push({who,desc,amount:amt});
+    }
+    ST.monthlyExp.push({monthKey:mk, monthName:sname, share, memberCount, items});
+  }
+
+  // ── Member sheets ──
+  const MSHEETS = {haa:'Hus Alahmed', siraj:'Siraj', mahdi:'Mahdi BuAli'};
+  for (const [key,sname] of Object.entries(MSHEETS)) {
+    const ws = wb.Sheets[sname]; if (!ws) continue;
+    const rows = XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    const rentRows=[], payments=[];
+    let rem_rent=null, rem_exp=null;
+    let curMonth=null;
+
+    for (let i=0;i<rows.length;i++) {
+      const r=rows[i];
+      const c0=r[0], c1=r[1], c2=r[2], c3=r[3], c4=r[4], c5=r[5];
+      const s0=String(c0||'').trim(), s1=String(c1||'').trim(),
+            s2=String(c2||'').trim(), s3=String(c3||'').trim(),
+            s4=String(c4||'').trim();
+
+      // Month header row: col0 is 3-letter month code like 'OCT', 'NOV'
+      if (/^(OCT|NOV|DEC|JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP)$/.test(s0)) {
+        // col1 is date (JS Date or serial), col2 is description, col3 is rent amount
+        let mk=null;
+        if (isDate(c1)) mk=dateMK(c1);
+        else if (typeof c1==='number'&&c1>40000) mk=serialMK(c1);
+        if (mk) curMonth=mk;
+        // May has two rows for rent — first row is 3-member 1-day part
+        const rentAmt=numV(c3);
+        if (rentAmt>0) rentRows.push({monthKey:mk||curMonth, desc:s2, amount:rentAmt});
+        continue;
+      }
+
+      // Second rent row (only in May, 4-member 30-day row)
+      if (s2.includes('Apartment Share') && numV(c3)>0 && !s0.match(/^[A-Z]{2,3}$/)) {
+        let mk=curMonth;
+        if (isDate(c1)) mk=dateMK(c1)||mk;
+        rentRows.push({monthKey:mk, desc:s2, amount:numV(c3)});
+        continue;
+      }
+
+      // Payment rows: col3 is negative amount (payment to HJM)
+      // Pattern 1: [date, 'Payment...' / 'Payments...', negAmt, expPart, comment]
+      if (s1.startsWith('Payment') && numV(c3)<0) {
+        let dateStr='—';
+        if (isDate(c1)) dateStr=dateDisp(c1)||'—';
+        else if (typeof c1==='number'&&c1>40000) dateStr=serialDisp(c1)||'—';
+        else if (s1) dateStr=s1;
+        payments.push({date:dateStr, desc:s4||s1||'دفعة', amount:Math.abs(numV(c3)), monthKey:curMonth});
+        continue;
+      }
+      // Pattern 2: [date?, 'دفع من...' / Arabic text, negAmt] in col3/col4
+      if ((s3.startsWith('دفع')||s3.startsWith('Payment')) && numV(c4)<0) {
+        let dateStr='—';
+        if (isDate(c1)) dateStr=dateDisp(c1)||'—';
+        else if (typeof c1==='number'&&c1>40000) dateStr=serialDisp(c1)||'—';
+        payments.push({date:dateStr, desc:s3, amount:Math.abs(numV(c4)), monthKey:curMonth});
+        continue;
+      }
+      // Pattern 3: Siraj style [date, 'Payment from Siraj', negAmt]
+      if (s1.startsWith('Payment') && numV(c2)<0) {
+        let dateStr='—';
+        if (isDate(c0)) dateStr=dateDisp(c0)||'—';
+        else if (typeof c0==='number'&&c0>40000) dateStr=serialDisp(c0)||'—';
+        payments.push({date:dateStr, desc:s1, amount:Math.abs(numV(c2)), monthKey:curMonth});
+        continue;
+      }
+      // Siraj: [date, 'دفع من أبو فدوى', negAmt]
+      if ((s1.startsWith('دفع')||s1.includes('Payment')) && numV(c2)<0) {
+        let dateStr='—';
+        if (isDate(c0)) dateStr=dateDisp(c0)||'—';
+        payments.push({date:dateStr, desc:s1, amount:Math.abs(numV(c2)), monthKey:curMonth});
+        continue;
+      }
+      // Remaining row
+      if (s0.includes('Remaining for Rental')||s1.includes('Remaining for Rental')) {
+        rem_rent=numV(r[1]!==''?c1:c2);
+        rem_exp =numV(r[2]!==''?c2:c3);
+        continue;
+      }
+      if (s0.includes('Remaining') && typeof c1==='number') {
+        rem_rent=numV(c1); rem_exp=numV(c2)||0; continue;
+      }
+    }
+
+    // Build per-month expense balance for this member
+    const expRows = ST.monthlyExp.map(me => {
+      const myItems = me.items.filter(it=>it.who===key);
+      const expPaid = myItems.reduce((s,i)=>s+i.amount,0);
+      return {monthKey:me.monthKey, monthName:me.monthName, share:me.share, memberCount:me.memberCount, expPaid, expBalance:expPaid-me.share, items:myItems};
+    }).filter(e=>e.share>0);
+
+    ST.members[key] = {rentRows, payments, expRows, rem_rent, rem_exp};
+  }
+
+  render();
+}
+
+// ═══════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════
+function fmt(n,dec=2){ if(n==null||isNaN(n))return'—'; return n.toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec})+' ر.س'; }
+function chip(text,cls){ return `<span class="badge ${cls}">${text}</span>`; }
+function mChip(key){ const mm=M[key]; if(!mm)return key; return `<span class="chip" style="background:${mm.bg};color:${mm.color};border:1px solid ${mm.bdr}">${mm.abbr}</span>`; }
+
+// Payment status for a month
+// rentRows for a member vs the rent for that month
+function monthStatus(key, mk) {
+  const ms = ST.members[key]; if (!ms) return {rent:'na', exp:'na'};
+  const me = ST.monthlyExp.find(e=>e.monthKey===mk);
+  if (!me) return {rent:'na', exp:'na'};
+
+  // Rent: sum rent rows for this month
+  const rentDue = ms.rentRows.filter(r=>r.monthKey===mk).reduce((s,r)=>s+r.amount,0);
+  // Total payments (we spread payments across months proportionally — or just use the raw totals)
+  // Better: use the General Expenses Total from the member sheet
+  // Actually the member sheet shows per-month expBalance via expRows
+  const expRow = ms.expRows.find(e=>e.monthKey===mk);
+  const expBalance = expRow ? expRow.expBalance : 0;
+  const expShare = expRow ? expRow.share : 0;
+
+  // For rent status, we rely on rem_rent from the sheet for final status,
+  // but for per-month we check if there's a payment close to the rent due
+  // The sheet doesn't directly split payments per month, so we use the
+  // "General Expenses Total" per month from expRows as a proxy
+  // For rent, future months have no rent rows yet (zero)
+  const today = new Date();
+  const monthYear = Math.floor(mk/100), monthM = mk%100;
+  const isFuture = (monthYear > today.getFullYear()) || (monthYear === today.getFullYear() && monthM > today.getMonth()+1);
+
+  let rentStatus, expStatus;
+
+  if (isFuture) {
+    rentStatus = 'future'; expStatus = 'future';
+  } else {
+    // Check if expBalance ≈ 0 → paid; positive → underpaid; negative → overpaid/credit
+    expStatus = expShare===0 ? 'na' : (Math.abs(expBalance)<2 ? 'paid' : (expBalance>0?'unpaid':'paid'));
+    // Rent: use overall rem_rent to guess. For past months with rentDue>0 assume 'paid' unless it's the deficit months
+    // We'll rely on a simple heuristic: if rem_rent < -50 member overpaid → all paid; if >50 last months unpaid
+    rentStatus = rentDue > 0 ? 'paid' : 'na'; // default paid for past months w/ rent due
+    // For HAA specifically, rem_rent = -1352 meaning he's behind
+    if (key==='haa' && ms.rem_rent && ms.rem_rent > 10) {
+      // mark the last months as partially unpaid
+      if (mk >= 202606) rentStatus = 'unpaid';
+    }
+    if (key==='mahdi' && ms.rem_rent && ms.rem_rent > 10) {
+      if (mk >= 202507) rentStatus = 'unpaid';
+    }
+  }
+
+  return {rentStatus, expStatus, expBalance, expShare, rentDue};
+}
+
+function statusBadge(status, label='') {
+  if (status==='paid')    return `<span class="badge b-paid">✓ ${label||'مدفوع'}</span>`;
+  if (status==='unpaid')  return `<span class="badge b-unpaid">✗ ${label||'غير مدفوع'}</span>`;
+  if (status==='partial') return `<span class="badge b-partial">◑ ${label||'جزئي'}</span>`;
+  if (status==='future')  return `<span class="badge b-future">— ${label||'لم يحن بعد'}</span>`;
+  return `<span class="badge b-na">— ${label||'—'}</span>`;
+}
+
+// ═══════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════
+function render() {
+  document.getElementById('loading').style.display='none';
+  document.getElementById('app').style.display='block';
+  renderOverview();
+  renderMemGrid();
+  renderMonths();
+  renderExpenses('all');
+}
+
+// ── OVERVIEW ──
+function renderOverview(){
+  const totalCapex = ST.capex.reduce((s,r)=>s+r.amount,0);
+  document.getElementById('ov-cards').innerHTML = `
+    <div class="card"><div class="cl">الإيجار + CAPEX (HJM)</div><div class="cv blue">${fmt(totalCapex,0)}</div></div>
+    <div class="card"><div class="cl">الإيجار السنوي</div><div class="cv blue">30,700 ر.س</div><div class="cs">14 أكتوبر 2025 – 13 أكتوبر 2026</div></div>
+    <div class="card"><div class="cl">الإيجار اليومي</div><div class="cv">98.93 ر.س</div><div class="cs">32.98 (3 أشخاص) | 24.73 (4 أشخاص)</div></div>
+    <div class="card"><div class="cl">عدد الأعضاء</div><div class="cv">3 + 1</div><div class="cs">مهدي: مؤقت من 2 مايو 2026</div></div>
+    <div class="card"><div class="cl">انتهاء العقد</div><div class="cv amber">13 أكتوبر 2026</div></div>
+  `;
+
+  // CAPEX
+  document.getElementById('capex-total').textContent = fmt(totalCapex,0);
+  document.getElementById('capex-body').innerHTML = ST.capex.map(r=>
+    `<tr><td>${r.date}</td><td>${r.desc}</td><td class="apos">${fmt(r.amount,0)}</td></tr>`
+  ).join('') || `<tr><td colspan="3" style="text-align:center;color:var(--mut);padding:18px">لا توجد بيانات</td></tr>`;
+
+  // Member summary
+  const MSUM = [
+    {key:'haa',   rentShare:10684.16, period:'أكتوبر 2025 → أكتوبر 2026', tag:'أساسي', tagc:'b-blue'},
+    {key:'siraj', rentShare:10684.16, period:'أكتوبر 2025 → أكتوبر 2026', tag:'أساسي', tagc:'b-blue'},
+    {key:'mahdi', rentShare:4056.02,  period:'مايو 2026 → أكتوبر 2026',   tag:'مؤقت',  tagc:'b-partial'},
+    {key:'hjm',   rentShare:totalCapex, period:'يدفع ويسترد من الأعضاء', tag:'مضيف',  tagc:'b-purple'},
+  ];
+  document.getElementById('ov-members').innerHTML = MSUM.map(ms=>{
+    const mm=M[ms.key], ms2=ST.members[ms.key]||{};
+    const rr=ms2.rem_rent, re=ms2.rem_exp;
+    const rrC=rr==null?'var(--mut)':Math.abs(rr)<5?'var(--green)':rr>0?'var(--amber)':'var(--red)';
+    const rrT=rr==null?'—':(Math.abs(rr)<2?'✅ مسدد':(rr>0?`+${fmt(rr)}`:`${fmt(rr)}`));
+    const reT=re==null?'—':(Math.abs(re)<2?'✅ 0':(re>0?`+${fmt(re)}`:`${fmt(re)}`));
+    return `<div class="mcard" style="border-color:${mm.bdr}" onclick="showTab(1,document.querySelectorAll('.tab')[1]);showMemberDetail('${ms.key}')">
+      <div class="mcard-h">
+        <div class="mav" style="background:${mm.bg};color:${mm.color}">${mm.ini}</div>
+        <div style="flex:1"><div class="mname">${mm.name}</div><div class="mrole">${ms.period}</div></div>
+        <span class="badge ${ms.tagc}">${ms.tag}</span>
+      </div>
+      <div class="mcard-b">
+        <div class="mr"><span class="mrl">حصة الإيجار</span><span class="mrr">${fmt(ms.rentShare,0)}</span></div>
+        <div class="mr"><span class="mrl">متبقي إيجار</span><span class="mrr" style="color:${rrC}">${rrT}</span></div>
+        <div class="mr"><span class="mrl">رصيد مصاريف</span><span class="mrr">${reT}</span></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── MEMBERS GRID ──
+function renderMemGrid(){
+  const items = [
+    {key:'haa',   rentShare:10684.16, period:'أكتوبر 2025 → أكتوبر 2026'},
+    {key:'siraj', rentShare:10684.16, period:'أكتوبر 2025 → أكتوبر 2026'},
+    {key:'mahdi', rentShare:4056.02,  period:'مايو 2026 → أكتوبر 2026'},
+    {key:'hjm',   rentShare:36108.5,  period:'يدفع ويسترد من الأعضاء'},
+  ];
+  document.getElementById('mem-grid').innerHTML = items.map(it=>{
+    const mm=M[it.key], ms=ST.members[it.key]||{};
+    const rr=ms.rem_rent, re=ms.rem_exp;
+    const rrC=rr==null?'var(--mut)':Math.abs(rr)<5?'var(--green)':rr>0?'var(--amber)':'var(--red)';
+    const rrT=rr==null?'—':(Math.abs(rr)<2?'✅ مسدد':(rr>0?`+${fmt(rr)}`:`${fmt(rr)}`));
+    const reT=re==null?'—':(Math.abs(re)<2?'✅ 0':(re>0?`+${fmt(re)}`:`${fmt(re)}`));
+    return `<div class="mcard" style="border-color:${mm.bdr}" onclick="showMemberDetail('${it.key}')">
+      <div class="mcard-h">
+        <div class="mav" style="background:${mm.bg};color:${mm.color};font-size:12px">${mm.ini}</div>
+        <div style="flex:1"><div class="mname">${mm.name}</div><div class="mrole">${mm.abbr}</div></div>
+      </div>
+      <div class="mcard-b">
+        <div class="mr"><span class="mrl">حصة الإيجار</span><span class="mrr">${fmt(it.rentShare,0)}</span></div>
+        <div class="mr"><span class="mrl">الفترة</span><span class="mrr" style="font-size:12px">${it.period}</span></div>
+        <div class="mr"><span class="mrl">متبقي إيجار</span><span class="mrr" style="color:${rrC}">${rrT}</span></div>
+      </div>
+      <div class="mcard-f">
+        <span class="mfl">رصيد المصاريف</span>
+        <span class="mfv" style="color:${Math.abs(re||0)<2?'var(--green)':re>0?'var(--amber)':'var(--red)'}">${reT}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── MEMBER DETAIL ──
+function showMemberDetail(key) {
+  document.getElementById('mem-list').style.display='none';
+  document.getElementById('mem-detail').style.display='block';
+  const mm = M[key];
+  const ms = ST.members[key]||{};
+
+  if (key==='hjm') {
+    document.getElementById('mem-det-content').innerHTML = buildHJM();
+    return;
+  }
+
+  // Build per-month status rows
+  const relevantMonths = ST.monthlyExp.filter(me => {
+    if (key==='mahdi') return me.monthKey>=202605;
+    return me.monthKey>=202510;
+  });
+
+  // Sum total payments
+  const totalPaid = (ms.payments||[]).reduce((s,p)=>s+p.amount,0);
+  const totalRentDue = (ms.rentRows||[]).reduce((s,r)=>s+r.amount,0);
+  const totalExpDue = (ms.expRows||[]).reduce((s,e)=>s+e.share,0);
+  const totalExpPaid = (ms.expRows||[]).reduce((s,e)=>s+e.expPaid,0);
+
+  // per-month cards
+  const monthCards = relevantMonths.map(me => {
+    const mk = me.monthKey;
+    const rentRowsForMonth = (ms.rentRows||[]).filter(r=>r.monthKey===mk);
+    const rentDue = rentRowsForMonth.reduce((s,r)=>s+r.amount,0);
+    const expRow = (ms.expRows||[]).find(e=>e.monthKey===mk);
+    const expShare = expRow?expRow.share:0;
+    const expPaid = expRow?expRow.expPaid:0;
+    const expBal = expPaid - expShare;
+    const myItems = expRow?expRow.items:[];
+
+    // Payments attributed to this month
+    const myPayments = (ms.payments||[]).filter(p=>p.monthKey===mk);
+
+    // Status
+    const today=new Date();
+    const isFut=(Math.floor(mk/100)>today.getFullYear())||(Math.floor(mk/100)===today.getFullYear()&&mk%100>today.getMonth()+1);
+
+    let rentSt, expSt;
+    if (isFut) { rentSt='future'; expSt='future'; }
+    else {
+      expSt = expShare===0?'na':(Math.abs(expBal)<2?'paid':(expBal>0?'unpaid':'paid'));
+      // Rent status heuristic
+      if (rentDue===0) { rentSt='na'; }
+      else {
+        // For members with rem_rent>10 we mark unpaid starting from a threshold month
+        if (key==='haa' && ms.rem_rent!=null && ms.rem_rent>10 && mk>=202606) rentSt='unpaid';
+        else if (key==='mahdi' && ms.rem_rent!=null && ms.rem_rent>10 && mk>=202507) rentSt='unpaid';
+        else rentSt='paid';
+      }
+    }
+
+    const rentStatus = statusBadge(rentSt, 'إيجار');
+    const expStatus  = statusBadge(expSt,  'مصاريف');
+
+    // Payments sub-list
+    const paysHtml = myPayments.length
+      ? `<div class="ms-divider"></div>
+         <div style="font-size:12px;color:var(--mut);margin-bottom:5px;font-weight:600">💳 الدفعات</div>
+         ${myPayments.map(p=>`<div class="ms-pay-item">
+           <span class="ms-pay-date">${p.date}</span>
+           <span class="ms-pay-desc">${p.desc}</span>
+           <span class="ms-pay-amt">${fmt(p.amount)}</span>
+         </div>`).join('')}` : '';
+
+    // Expense items sub-list
+    const expItemsHtml = myItems.length
+      ? `<div class="ms-divider"></div>
+         <div style="font-size:12px;color:var(--mut);margin-bottom:5px;font-weight:600">🧾 مصروفاته هذا الشهر</div>
+         ${myItems.map(i=>`<div class="ms-exp-item"><span class="ms-exp-desc">${i.desc}</span><span class="ms-exp-amt">${fmt(i.amount)}</span></div>`).join('')}`
+      : '';
+
+    return `<div class="ms-card">
+      <div class="ms-card-top">
+        <div class="ms-month-name">${me.monthName}</div>
+        <div class="ms-badges">${rentStatus}${expStatus}</div>
+      </div>
+      <div class="ms-card-body">
+        ${rentDue>0?`<div class="ms-row"><span class="ms-label">حصة الإيجار</span><span class="ms-val apos">${fmt(rentDue)}</span></div>`:''}
+        ${expShare>0?`<div class="ms-row"><span class="ms-label">حصة المصاريف</span><span class="ms-val apos">${fmt(expShare)}</span></div>`:''}
+        ${expPaid>0?`<div class="ms-row"><span class="ms-label">ما دفعه من مصاريف</span><span class="ms-val aneg">${fmt(expPaid)}</span></div>`:''}
+        ${expShare>0?`<div class="ms-row"><span class="ms-label">رصيد المصاريف</span>
+          <span class="ms-val" style="color:${Math.abs(expBal)<2?'var(--green)':expBal>0?'var(--amber)':'var(--red)'}">
+            ${Math.abs(expBal)<0.02?'✓ صفر':(expBal>0?'+':'')+fmt(expBal)}
+          </span></div>`:''}
+        ${paysHtml}
+        ${expItemsHtml}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Summary totals box
+  const rrC = ms.rem_rent==null?'var(--mut)':Math.abs(ms.rem_rent)<5?'var(--green)':ms.rem_rent>0?'var(--amber)':'var(--red)';
+  const reC = ms.rem_exp==null?'var(--mut)':Math.abs(ms.rem_exp)<5?'var(--green)':ms.rem_exp>0?'var(--amber)':'var(--red)';
+
+  document.getElementById('mem-det-content').innerHTML = `
+    <div class="det-header">
+      <div class="det-av" style="background:${mm.bg};color:${mm.color}">${mm.ini}</div>
+      <div>
+        <div class="det-name" style="color:${mm.color}">${mm.name}</div>
+        <div class="det-role">يدفع لـ Hussain Almoghalliq (HJM)</div>
+      </div>
+    </div>
+
+    <div class="totals-box">
+      <div class="tot-row"><span class="tot-label">إجمالي حصة الإيجار</span><span class="tot-val apos">${fmt(totalRentDue)}</span></div>
+      <div class="tot-row"><span class="tot-label">إجمالي الدفعات للـ HJM</span><span class="tot-val aneg">${fmt(totalPaid)}</span></div>
+      <div class="tot-row"><span class="tot-label">إجمالي حصة المصاريف</span><span class="tot-val apos">${fmt(totalExpDue)}</span></div>
+      <div class="tot-row"><span class="tot-label">ما دفعه من مصاريف</span><span class="tot-val aneg">${fmt(totalExpPaid)}</span></div>
+      <div class="tot-row final">
+        <span class="tot-label">المتبقي على الإيجار</span>
+        <span class="tot-val" style="color:${rrC}">${ms.rem_rent!=null?(Math.abs(ms.rem_rent)<2?'✅ مسدد':(ms.rem_rent>0?'+':'')+fmt(ms.rem_rent)):'—'}</span>
+      </div>
+      <div class="tot-row final">
+        <span class="tot-label">رصيد المصاريف الكلي</span>
+        <span class="tot-val" style="color:${reC}">${ms.rem_exp!=null?(Math.abs(ms.rem_exp)<2?'✅ صفر':(ms.rem_exp>0?'+':'')+fmt(ms.rem_exp)):'—'}</span>
+      </div>
+    </div>
+
+    <div class="stitle">حالة كل شهر</div>
+    <div class="month-status-grid">${monthCards}</div>
+  `;
+}
+
+function buildHJM(){
+  const mm=M.hjm, totalCapex=ST.capex.reduce((s,r)=>s+r.amount,0);
+  return `<div class="det-header">
+    <div class="det-av" style="background:${mm.bg};color:${mm.color}">HM</div>
+    <div><div class="det-name" style="color:${mm.color}">${mm.name}</div>
+    <div class="det-role">الدافع الرئيسي — يدفع للمالك ويسترد من الأعضاء</div></div>
+  </div>
+  <div class="cards">
+    <div class="card"><div class="cl">الإجمالي المدفوع</div><div class="cv" style="color:var(--hjm)">${fmt(totalCapex,0)}</div></div>
+  </div>
+  <div class="stitle">المدفوعات الرأسمالية</div>
+  <div class="twrap"><table>
+    <thead><tr><th>التاريخ</th><th>البيان</th><th>المبلغ</th></tr></thead>
+    <tbody>${ST.capex.map(r=>`<tr><td>${r.date}</td><td>${r.desc}</td><td class="apos">${fmt(r.amount,0)}</td></tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+function closeDet(){
+  document.getElementById('mem-list').style.display='block';
+  document.getElementById('mem-detail').style.display='none';
+}
+
+// ── MONTHS TAB ──
+function renderMonths(){
+  const maxShare=Math.max(...ST.monthlyExp.map(e=>e.share),1);
+  document.getElementById('mo-grid').innerHTML = ST.monthlyExp.map((e,idx)=>{
+    const pct=(e.share/maxShare*100).toFixed(0);
+    const byWho={};
+    e.items.forEach(i=>{byWho[i.who]=(byWho[i.who]||0)+i.amount;});
+    const barMax=Math.max(...Object.values(byWho),1);
+    const bars=Object.entries(byWho).map(([who,amt])=>{
+      const mm=M[who]; if(!mm)return'';
+      return `<div class="brow"><div class="bl" style="color:${mm.color}">${mm.abbr}</div>
+        <div class="bt"><div class="bf" style="width:${(amt/barMax*100).toFixed(0)}%;background:${mm.color}"></div></div>
+        <div class="bv">${fmt(amt,0)}</div></div>`;
+    }).join('');
+    return `<div class="mo-card" onclick="showMonthDet(${idx})">
+      <div class="mo-top">
+        <div class="mo-name">${e.monthName}</div>
+        <div class="mo-share"><div class="mo-sv">${e.share>0?fmt(e.share):'—'}</div><div class="mo-sl">حصة / شخص (${e.memberCount})</div></div>
+      </div>
+      <div class="ptrack"><div class="pfill" style="width:${pct}%"></div></div>
+      ${bars||'<div style="font-size:11px;color:var(--mut);text-align:center;padding:4px">لا مصاريف</div>'}
+    </div>`;
+  }).join('');
+}
+
+function showMonthDet(idx){
+  const e=ST.monthlyExp[idx];
+  const rows=e.items.map(i=>`<tr><td>${i.desc}</td><td class="apos">${fmt(i.amount)}</td><td>${mChip(i.who)}</td></tr>`).join('')
+    ||'<tr><td colspan="3" style="text-align:center;color:var(--mut);padding:16px">لا توجد مصاريف</td></tr>';
+  document.getElementById('month-det-content').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+      <div style="font-size:16px;font-weight:700">${e.monthName}</div>
+      <div style="text-align:left">
+        <div style="font-size:11px;color:var(--mut)">حصة الفرد (${e.memberCount} أشخاص)</div>
+        <div style="font-size:19px;font-weight:700;color:var(--blue)">${e.share>0?fmt(e.share):'—'}</div>
+      </div>
+    </div>
+    <div class="twrap"><table>
+      <thead><tr><th>البيان</th><th>المبلغ</th><th>الدافع</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+  const sec=document.getElementById('month-detail-section');
+  sec.style.display='block';
+  sec.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// ── EXPENSES TAB ──
+function renderExpenses(filter){
+  let rows='';
+  ST.monthlyExp.forEach(e=>{
+    e.items.forEach(i=>{
+      if(filter!=='all'&&i.who!==filter) return;
+      rows+=`<tr><td style="color:var(--mut)">${e.monthName}</td><td>${i.desc}</td><td class="apos">${fmt(i.amount)}</td><td>${mChip(i.who)}</td></tr>`;
+    });
+  });
+  document.getElementById('exp-body').innerHTML=rows||'<tr><td colspan="4" style="text-align:center;color:var(--mut);padding:24px">لا توجد بيانات</td></tr>';
+  const opts=[['all','الكل'],['haa','HAA'],['hjm','HJM'],['siraj','Siraj'],['mahdi','Mahdi']];
+  document.getElementById('exp-pills').innerHTML=opts.map(([k,l])=>
+    `<button class="pill ${filter===k?'active':''}" onclick="renderExpenses('${k}')">${l}</button>`).join('');
+}
+
+// ═══════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════
+function showTab(idx,btn){
+  document.querySelectorAll('.panel').forEach((p,i)=>p.classList.toggle('active',i===idx));
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===idx));
+  if(idx!==1){closeDet();}
+}
+
+// ═══════════════════════════════════════════════════
+// LOAD
+// ═══════════════════════════════════════════════════
+function setBanner(cls,msg){const b=document.getElementById('banner');b.className=cls;b.textContent=msg;}
+function spinOn(on){document.querySelector('.sync-btn').classList.toggle('spinning',on);}
+
+async function fetchLastCommit(){
+  try{
+    const r=await fetch(COMM_URL);
+    if(r.ok){const c=await r.json();if(c&&c.length){
+      const d=new Date(c[0].commit.committer.date);
+      document.getElementById('file-time').textContent='آخر تحديث للملف: '+d.toLocaleDateString('ar-SA',{year:'numeric',month:'long',day:'numeric'});
+    }}
+  }catch(e){}
+}
+
+async function loadGithub(){
+  setBanner('L','⏳ جاري تحميل البيانات من GitHub...');
+  spinOn(true);
+  try{
+    const res=await fetch(RAW_URL+'?t='+Date.now());
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const buf=await res.arrayBuffer();
+    const wb=XLSX.read(new Uint8Array(buf),{type:'array',cellDates:false,raw:false});
+    const raw=XLSX.write(wb,{type:'base64',bookType:'xlsx'});
+    localStorage.setItem(CACHE_K,raw);
+    localStorage.setItem(CACHE_K+'_ts',Date.now());
+    parseWorkbook(wb);
+    setBanner('S','✅ تم تحميل البيانات من GitHub بنجاح');
+    setTimeout(()=>document.getElementById('banner').style.display='none',3000);
+  }catch(e){setBanner('E','❌ فشل الاتصال بـ GitHub: '+e.message);}
+  spinOn(false);
+}
+
+async function syncNow(){await loadGithub();}
+
+async function init(){
+  fetchLastCommit();
+  const cached=localStorage.getItem(CACHE_K);
+  const ts=parseInt(localStorage.getItem(CACHE_K+'_ts')||'0');
+  if(cached&&Date.now()-ts<30*60*1000){
+    try{
+      const buf=Uint8Array.from(atob(cached),c=>c.charCodeAt(0)).buffer;
+      const wb=XLSX.read(new Uint8Array(buf),{type:'array',cellDates:false,raw:false});
+      parseWorkbook(wb);
+      setBanner('L','📦 البيانات من الكاش — اضغط "مزامنة" للتحديث');
+      return;
+    }catch(e){localStorage.removeItem(CACHE_K);}
+  }
+  await loadGithub();
+}
+init();
+</script>
+</body>
+</html>
